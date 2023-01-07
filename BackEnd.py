@@ -3,23 +3,19 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import numpy as np
 import librosa
-import soundfile as sf
-
 from sklearn.preprocessing import OneHotEncoder
-from flask import request
+from flask import request , render_template
 from pydub import AudioSegment
-#from playsound import playsound 
-#from IPython.display import Audio
 
 
 
-app = flask.Flask(__name__)
+
+app = flask.Flask(__name__, template_folder='template')
 app.config["DEBUG"] = True
 
 #logic starts
-def extract_features(data, sample_rate):
+def extract_features(data, sample_rate, frame_length=2048, hop_length=512):
     # ZCR
     result = np.array([])
     zcr = np.mean(librosa.feature.zero_crossing_rate(y=data).T, axis=0)
@@ -64,8 +60,8 @@ def checker(sent_audio):
     Y = encoder.fit_transform(np.array(Y).reshape(-1,1)).toarray()
 
 
-    data = pd.DataFrame(msg)
-    data = np.expand_dims(data, axis=0)
+    data = pd.DataFrame(msg) # (162, 1) 1 audio(row) with 162 features(columns)
+    data = np.expand_dims(data, axis=0) # (1, 162, 1) the 1 on the left serves as batch_size 
     data.shape
     
 
@@ -80,7 +76,7 @@ def checker(sent_audio):
 @app.route('/', methods=['GET','POST'])
 def home():
     
-    if 'file' in request.files:
+    if request.method == 'POST':
         uploaded_file = request.files['file']
         if uploaded_file != '':
             _, ext = os.path.splitext(uploaded_file.filename)
@@ -95,14 +91,13 @@ def home():
             elif ext == '.m4a':    
                 sound = AudioSegment.from_file(uploaded_file, 'm4a')
                 wav_form = sound.export(format="wav") 
-                uploaded_file = wav_form     
+                uploaded_file = wav_form 
         
             responce = checker(uploaded_file)
             return responce[0][0]
-    
     else:
         return {'error':'audio not found'}
+ 
+    return render_template('index.html')
 
-
-if __name__ == '__main__':
-   app.run()
+app.run()
