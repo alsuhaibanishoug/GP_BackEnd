@@ -95,8 +95,6 @@ def home():
         
             responce = checker(uploaded_file)
             return responce[0][0]
-    else:
-        return {'error':'audio not found'}
  
     return render_template('index.html')
 
